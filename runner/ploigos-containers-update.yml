@@ -1,0 +1,60 @@
+---
+- name: "ploigos-containers | update release playbook"
+  hosts: localhost
+  vars:
+    github_repo: "twling/ploigos-containers.git"
+    github_dir: "/srv/ploigos-containers"
+    new_ver: "{{ lookup('env','NEW_VER') }}"
+    git_username: "User Name"
+    git_email: "user@example.com"
+  tasks:
+
+
+    - name: "ploigos-containers | checkout repo"
+      git:
+        repo: "https://github.com/{{ github_repo }}"
+        dest: "{{ github_dir }}"
+
+    - name: "ploigos-containers | configure git settings"
+      shell:
+        "{{ item }}"
+      args:
+        chdir: "{{ github_dir }}"
+      with_items:
+        - "git config credential.helper 'store --file /runner/git.store'"
+        - "git config user.name {{ git_username }}"
+        - "git config user.email {{ git_email }}"
+
+    - name: "ploigos-containers | update base Containerfile with new ploigos version"
+      lineinfile:
+        path: "{{ github_dir }}/ploigos-base/Containerfile.ubi8"
+        regexp: '^ARG PLOIGOS_SOURCE=ploigos-step-runner==' 
+        line: "ARG PLOIGOS_SOURCE=ploigos-step-runner=={{ new_ver[1:] }}"
+   
+    - name: "ploigos-containers | add and commit changes"
+      shell:
+        "git add -A && git commit -m \"release {{ new_ver }}\""
+      args:
+        chdir: "{{ github_dir }}"
+
+    - name: "ploigos-containers | create new tag in repo"
+      shell:
+        "git tag {{ new_ver }}"
+      args:
+        chdir: "{{ github_dir }}"
+      
+    - name: "ploigos-containers | push tag to remote repo"
+      shell:
+        "git push origin {{ new_ver }}"
+      args:
+        chdir: "{{ github_dir }}"
+      
+    #- name: "ploigos-containers | create a GitHub Release"
+    #  github_release:
+    #    action: create_release
+    #    user: twling
+    #    token: ""
+    #    repo: ploigos-containers
+    #    tag:  "{{ new_ver }}"
+    #    name: "{{ new_ver }}"
+    #    #body: "{{ lookup('file', '/runner/ploigos-containers-release-notes.adoc') }}"

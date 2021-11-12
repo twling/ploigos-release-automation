@@ -1,0 +1,22 @@
+# Purpose
+
+This release escapes the values for multiple key-value pairs, to account for
+variables that evaluate to a string startiwht with a special character (e.g.,
+"|" or "<")
+
+# Enhancements
+
+* N/A
+
+# Bug Fixes
+
+* Multiple strings are now surrounded with quotes to prevent YAML parsing 
+errors on certain values. For example, the auth token for the Red Hat 
+registries typically take the form of “<account-number>|uhc-pool-<GUID>”, but 
+there are edge cases where “<account-number>”is blank, creating a token of 
+“|uhc-pool-<GUID>”.
+
+# Breaking Changes
+
+* N/A
+

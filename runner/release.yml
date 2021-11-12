@@ -1,0 +1,6 @@
+---
+- import_playbook: ploigos-step-runner-update.yml
+- import_playbook: ploigos-containers-update.yml
+- import_playbook: ploigos-jenkins-library-update.yml
+- import_playbook: ploigos-gitlab-library-update.yml
+- import_playbook: ploigos-charts-update.yml

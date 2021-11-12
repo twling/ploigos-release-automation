@@ -1,0 +1,44 @@
+---
+- name: "ploigos-jenkins-library | update release playbook"
+  hosts: localhost
+  vars:
+    github_repo: "twling/ploigos-jenkins-library.git"
+    github_dir: "/srv/ploigos-jenkins-library"
+    new_ver: "{{ lookup('env','NEW_VER') }}"
+  tasks:
+
+
+    - name: "ploigos-jenkins-library | checkout repo"
+      git:
+        repo: "https://github.com/{{ github_repo }}"
+        dest: "{{ github_dir }}"
+
+    - name: "ploigos-jenkins-library | configure git settings"
+      shell:
+        "{{ item }}"
+      args:
+        chdir: "{{ github_dir }}"
+      with_items:
+        - "git config credential.helper 'store --file /runner/git.store'"
+      
+    - name: "ploigos-jenkins-library | create new tag in repo"
+      shell:
+        "git tag {{ new_ver }}"
+      args:
+        chdir: "{{ github_dir }}"
+      
+    - name: "ploigos-jenkins-library | push tag to remote repo"
+      shell:
+        "git push origin {{ new_ver }}"
+      args:
+        chdir: "{{ github_dir }}"
+      
+    #- name: "ploigos-jenkins-library |  create a GitHub Release"
+    #  github_release:
+    #    action: create_release
+    #    user: twling
+    #    token: ""
+    #    repo: ploigos-jenkins-library
+    #    tag:  "{{ new_ver }}"
+    #    name: "{{ new_ver }}"
+    #    #body: "{{ lookup('file', '/runner/ploigos-jenkins-library-release-notes.adoc') }}"

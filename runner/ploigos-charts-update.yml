@@ -1,0 +1,44 @@
+---
+- name: "ploigos-charts | update release playbook"
+  hosts: localhost
+  vars:
+    github_repo: "twling/ploigos-charts.git"
+    github_dir: "/srv/ploigos-charts"
+    new_ver: "{{ lookup('env','NEW_VER') }}"
+  tasks:
+
+
+    - name: "ploigos-charts | checkout repo"
+      git:
+        repo: "https://github.com/{{ github_repo }}"
+        dest: "{{ github_dir }}"
+
+    - name: "ploigos-charts | configure git settings"
+      shell:
+        "{{ item }}"
+      args:
+        chdir: "{{ github_dir }}"
+      with_items:
+        - "git config credential.helper 'store --file /runner/git.store'"
+      
+    - name: "ploigos-charts | create new tag in repo"
+      shell:
+        "git tag {{ new_ver }}"
+      args:
+        chdir: "{{ github_dir }}"
+      
+    - name: "ploigos-charts | push tag to remote repo"
+      shell:
+        "git push origin {{ new_ver }}"
+      args:
+        chdir: "{{ github_dir }}"
+      
+    #- name: "ploigos-charts | create a GitHub Release"
+    #  github_release:
+    #    action: create_release
+    #    user: twling
+    #    token: ""
+    #    repo: ploigos-gitlab-library
+    #    tag:  "{{ new_ver }}"
+    #    name: "{{ new_ver }}"
+    #    #body: "{{ lookup('file', '/runner/ploigos-charts-release-notes.adoc') }}"

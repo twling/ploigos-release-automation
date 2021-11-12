@@ -1,0 +1,157 @@
+= Goal
+
+This document provides the procedures for executing the full Ploigos release process, which
+includes several components across multiple git repositories:
+
+. The Ploigos Step Runner (Python library)
+. The containers for running various PSR steps on OpenShift
+. The Ploigos CI/CD pipeline libraries
+. The Ploigos reference applications, and their supporting Helm charts
+
+The following CI/CD platforms are currently supported as of the time of writing:
+
+. Jenkins
+. Tekton
+. Coming soon: GitLab
+
+This document is not intended to cover the release of ‘ploigos-software-factory-operator’;
+at the time of writing, these procedures are not documented, but should be linked from here
+when available.
+
+= Audience
+
+This document is intended for Ploigos developers, and assumes basic proficiency with one IDE
+(VSCode, Eclipse, etc.) and one shell (bash, zsh, etc.) of the developer’s choice.
+
+= Assumptions & Other Notes
+
+. GitHub is the official git repository for Ploigos; unless noted otherwise, all release steps
+done via the git repository are specific to GitHub. If a decision to host Ploigos elsewhere
+is made in the future, these instructions will need to be heavily reviewed / rewritten.
+. Container versions:
+.. vX.Y.Z: a specific release, i.e., as per this documentation
+.. latest: points to the most recent vX.Y.Z release
+.. edge: the HEAD of main in the upstream repository, at the time of merge
+.. nightly: the HEAD of main in the upstream repository, but potentially with an updated base image
+. All “clone X repository” steps were written assuming a fresh environment. If these
+repositories already exist locally, they can be reused.
+
+
+= Process Overview
+
+Releases will typically happen according to the following high-level process:
+
+. Determine the release version number, which will be used across all repositories
+. Release `ploigos-step-runner`
+. Release `ploigos-containers`
+. Release `ploigos-jenkins-library`
+. Release `ploigos-gitlab-library`
+. Release `ploigos-charts`
+
+= Common Release Procedures
+
+== Writing Release Notes
+
+The release notes for any Ploigos component will have 4 sections:
+
+. Purpose: this section shoudl container one or two sentences summarizing the 
+theme/intent of this release. Keep this section brief; the remaining sections
+will cover the important details.
+. Enhancements: a bulleted list for new features and/or improvements to
+existing features.
+. Bug Fixes: a list of bugs that were fixed since the last release.
+. Breaking Changes: list of any changes that will require consumers of Ploigos
+to make changes to their code repository, pipelines, pipeline configurations,
+or pipeline infrastructure.
+
+The *Purpose* section must always contain content. Other sections may or may
+not contain any information. These sections will be a bulleted list when it
+contains content, or simply list "N/A" if there is not content for the release.
+
+The following is an example of the release notes in markdown:
+
+.Example Release Notes
+----
+# Purpose
+
+This release escapes the values for multiple key-value pairs, to account for
+variables that evaluate to a string startiwht with a special character (e.g.,
+"|" or "<")
+
+# Enhancements
+
+* N/A
+
+# Bug Fixes
+
+* Multiple strings are now surrounded with quotes to prevent YAML parsing 
+errors on certain values. For example, the auth token for the Red Hat 
+registries typically take the form of “<account-number>|uhc-pool-<GUID>”, but 
+there are edge cases where “<account-number>”is blank, creating a token of 
+“|uhc-pool-<GUID>”.
+
+# Breaking Changes
+
+* N/A
+
+----
+
+=== Gathering Release Notes Content
+
+The easiest way to gather the contents for release notes is to view the list of commits since the
+previous release. In GitHub, this can be done as follows:
+
+. Go to the “Releases” page of the repository
+. On the latest release, click the “Compare” dropdown, and select the latest release
+version (it will already be checked).
+. There will be dropdowns for “base” and “compare”; change the “compare” version to
+“main”.
+. Multiline commits will be collapsed with an ellipsis (...); click on it to expand.
+. Unless there is a critical need to get a release out the door quickly, release notes should
+be peer reviewed.
+. If any commit messages do not contain useful information, be sure to publicly shame the
+dev :)
+
+
+=== Determining Release Version
+
+Ploigos uses semantic versioning, with a “v” prepended to the release number. The Ploigos
+release notes are already broken down into the three sections that correlate to the three
+numbers in semantic versioning. Apply the first rule that matches:
+
+. If Breaking Changes has content, update the major release (e.g., v1.2.1 -> v2.0.0).
+.. NOTE: Do not perform a major release without team consensus.
+.. NOTE: At the time of writing, Ploigos is still in the v0.y.z phase. Breaking changes
+may happen without a major release.
+. If Enhancements has content, update the minor release (e.g., v1.2.1 -> v1.3.0).
+. Only Bug Fixes has content; update the patch release (e.g., v1.2.1 -> v1.2.2).
+
+There will never be a case where all three sections are empty. Even in a fringe case where a
+release fails for some reason, and the version number must be skipped, the new version should
+copy over all of the notes from the previous release attempt.
+
+= Automated Release Process
+
+== Description
+
+The release process has been automated using Ansible using a customized `ansible-runner` container.
+
+To perform a release:
+
+. Obtain the release automation code from <repo TBD>
+. Determine new release version number (see above)
+. Build the custom `ansible-runner` container
+.. `buildah build -f Containerfile -t ansible-runner-ploigos`
+. Update all `runner/*-release-notes.adoc` documents (see above for release note gathering)
+. Configure credentials with repo commit access (modify `runner/git.store`)
+.. git.store format: `https://<username>:<token>@github.com`
+. Run the container, passing in the new version as an environmental variable and mounting the `runner` directory for playbooks
+.. `podman run --rm -e RUNNER_PLAYBOOK=release.yml -e NEW_VER=v0.23.99 -v $PWD/runner:/runner:Z -it localhost/ansible-runner-ploigos`
+
+
+
+
+
+
+
+
